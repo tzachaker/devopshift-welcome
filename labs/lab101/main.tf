@@ -33,7 +33,6 @@ resource "aws_instance" "vm" {
     Name = "[tzach]-vm"
   }
 }
-#----
 terraform {
   required_providers {
     time = {
@@ -45,12 +44,16 @@ terraform {
 resource "time_sleep" "wait_for_ip" {
   create_duration = "10s"  # Wait for 10 seconds
 }
-#----
+
+resource "null_resource" "run_script" {
+  provisioner "local-exec" {
+    command = "echo 'hello JB class'"
+  }
+}
+
 output "vm_public_ip" {
   value       = aws_instance.vm.public_ip
-  #----
   depends_on  = [time_sleep.wait_for_ip]  # Wait for the time_sleep resource to complete
-  #----
   description = "Public IP address of the VM"
 }
 
