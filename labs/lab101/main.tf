@@ -30,7 +30,7 @@ resource "aws_instance" "vm" {
   vpc_security_group_ids = [aws_security_group.sg.id]
 
   tags = {
-    Name = "[tzach]-vm"
+    Name = "tzach-vm"
   }
 }
 terraform {
@@ -75,5 +75,42 @@ output "vm_public_ip" {
   description = "Public IP address of the VM"
 }
 
+#---------------
+# variable "message" {
+    
+# }
+
+variable "publicip" {
+  description = "public ip :"
+  default     = ""
+}
+
+variable "ami" {
+  description = "AMI ID :"
+  default     = "ami-0c02fb55956c7d316"
+}
+# MODULE LOGIC HERE:
+variable "regionnn" {
+  description = "region :"
+  default     = ""
+}
+
+
+
+
+# MODULE OUTPUTS
+output "mypublicip" {
+    value = "the public ip is : ${var.publicip}."
+  
+}
+
+output "myami" {
+    value = "the ami is: ${var.ami}"
+  
+}
+output "myregion" {
+    value = "the region is: ${var.region}"
+  
+}
 
 
