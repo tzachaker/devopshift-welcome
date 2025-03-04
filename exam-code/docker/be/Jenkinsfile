@@ -7,68 +7,71 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('exam')
         DOCKER_REGISTRY = 'tzachaker'
-        REPO_NAME = 'be'
+        REPO_NAME = 'be'  
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'workshop/argo-jenkins-exam',
+                git branch: 'workshop/argo-jenkins-exam', 
                     url: 'https://github.com/tzachaker/devopshift-welcome.git'
             }
         }
-
+        
         stage('Lint & Security Scan') {
             steps {
-                sh '''
-                    pip install flake8 bandit || true
-                    flake8 . || true
-                    bandit -r . || true
-                '''
+                // התקנת כלים עבור Linting ו- Security Scan
+                sh 'pip install flake8 bandit autopep8 black || true'
+                
+                // הרצת linting עם flake8
+                sh 'flake8 . || true'
+                
+                // הרצת סריקת אבטחה עם bandit
+                sh 'bandit -r . || true'
+                
+                // תיקון אוטומטי של בעיות סגנון עם autopep8
+                sh 'autopep8 --in-place --recursive .'
+                
+                // תיקון סגנון עם black
+                sh 'black .'
             }
         }
-
+        
         stage('Install Dependencies') {
             steps {
                 sh 'pip install -r requirements.txt'
             }
         }
-
+        
         stage('Build Docker Image') {
             steps {
-                sh '''
-                    docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME/
-                    docker tag $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$REPO_NAME:latest
-                '''
+                sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME/"
+                sh "docker tag $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$REPO_NAME:latest"
             }
         }
-
+        
         stage('Run Tests in Container') {
             steps {
-                sh 'docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest tests/'
+                sh "docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest tests/"
             }
         }
-
+        
         stage('Integration Test with Docker Compose') {
             steps {
                 dir('docker') {
-                    sh '''
-                        docker-compose up -d
-                        sleep 10
-                        curl -f http://localhost:5002 || exit 1
-                        docker-compose down
-                    '''
+                    sh 'docker-compose up -d'
+                    sleep time: 10, unit: 'SECONDS'  // זמן להעלאת המכולות
+                    sh 'curl -f http://localhost:5002 || exit 1'  # Adjust for backend if needed
+                    sh 'docker-compose down'
                 }
             }
         }
-
+        
         stage('Push to Docker Hub') {
             steps {
-                sh '''
-                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
-                    docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG
-                    docker push $DOCKER_REGISTRY/$REPO_NAME:latest
-                '''
+                sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
+                sh "docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG"
+                sh "docker push $DOCKER_REGISTRY/$REPO_NAME:latest"
             }
         }
 
