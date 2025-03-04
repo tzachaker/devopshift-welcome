@@ -1,3 +1,77 @@
+// pipeline {
+//     agent {
+//         docker {
+//             image 'python:3.10'
+//         }
+//     }
+//     environment {
+//         DOCKERHUB_CREDENTIALS = credentials('exam')
+//         DOCKER_REGISTRY = 'tzachaker'
+//         REPO_NAME = 'be'  
+//         IMAGE_TAG = "${env.BUILD_NUMBER}"
+//     }
+//     stages {
+//         stage('Clone Repository') {
+//             steps {
+//                 git branch: 'workshop/argo-jenkins-exam', 
+//                     url: 'https://github.com/tzachaker/devopshift-welcome.git'
+//             }
+//         }
+        
+//         stage('Lint & Security Scan') {
+//             steps {
+//                 sh 'pip install flake8 bandit'
+//                 sh 'flake8 .'
+//                 sh 'bandit -r .'
+//             }
+//         }
+        
+//         stage('Install Dependencies') {
+//             steps {
+//                 sh 'pip install -r requirements.txt'
+//             }
+//         }
+        
+//         stage('Build Docker Image') {
+//             steps {
+//                 sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME/"
+//                 sh "docker tag $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$REPO_NAME:latest"
+//             }
+//         }
+        
+//         stage('Run Tests in Container') {
+//             steps {
+//                 sh "docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest tests/"
+//             }
+//         }
+        
+//         stage('Integration Test with Docker Compose') {
+//             steps {
+//                 dir('docker') {
+//                     sh 'docker-compose up -d'
+//                     sleep time: 10, unit: 'SECONDS'  // זמן להעלאת המכולות
+//                     sh 'curl -f http://localhost:5002 || exit 1'  # Adjust for backend if needed
+//                     sh 'docker-compose down'
+//                 }
+//             }
+//         }
+        
+//         stage('Push to Docker Hub') {
+//             steps {
+//                 sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
+//                 sh "docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG"
+//                 sh "docker push $DOCKER_REGISTRY/$REPO_NAME:latest"
+//             }
+//         }
+
+//         stage('Cleanup') {
+//             steps {
+//                 sh 'docker system prune -af'
+//             }
+//         }
+//     }
+// }
+
 pipeline {
     agent {
         docker {
@@ -7,7 +81,7 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('exam')
         DOCKER_REGISTRY = 'tzachaker'
-        REPO_NAME = 'be'  
+        REPO_NAME = 'fe'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
     stages {
@@ -34,6 +108,7 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
+                // הגדרת פקודות בצורה יותר קריאה
                 sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME/"
                 sh "docker tag $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$REPO_NAME:latest"
             }
@@ -49,8 +124,8 @@ pipeline {
             steps {
                 dir('docker') {
                     sh 'docker-compose up -d'
-                    sleep time: 10, unit: 'SECONDS'  // זמן להעלאת המכולות
-                    sh 'curl -f http://localhost:5002 || exit 1'  # Adjust for backend if needed
+                    sleep time: 10, unit: 'SECONDS'
+                    sh 'curl -f http://localhost:5000 || exit 1'
                     sh 'docker-compose down'
                 }
             }
