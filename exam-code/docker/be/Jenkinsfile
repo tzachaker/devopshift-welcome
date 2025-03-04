@@ -7,7 +7,7 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('exam')
         DOCKER_REGISTRY = 'tzachaker'
-        REPO_NAME = 'be'  
+        REPO_NAME = 'be'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
     stages {
@@ -17,12 +17,23 @@ pipeline {
                     url: 'https://github.com/tzachaker/devopshift-welcome.git'
             }
         }
-        
+
         stage('Lint & Security Scan') {
             steps {
-                sh 'pip install flake8 bandit || true'
-                sh 'flake8 . || true'
-                sh 'bandit -r . || true'
+                script {
+                    // התקנת חבילות לינטינג וסקירת אבטחה
+                    sh 'pip install flake8 bandit'
+                    
+                    // בדיקה אם ההתקנה הצליחה
+                    sh 'pip show flake8'
+                    sh 'pip show bandit'
+                    
+                    // הרצת בדיקות לינטינג
+                    sh 'flake8 . || exit 1'
+                    
+                    // הרצת סקירת אבטחה
+                    sh 'bandit -r . || exit 1'
+                }
             }
         }
         
@@ -71,4 +82,3 @@ pipeline {
         }
     }
 }
-
