@@ -1,84 +1,105 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10'
-        }
-    }
+    agent any
+
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('exam')
-        DOCKER_REGISTRY = 'tzachaker'
-        REPO_NAME = 'be'
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        DOCKER_IMAGE = "python:3.10"
+        GIT_CREDENTIALS = 'exam' // credentials for git
     }
+
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git branch: 'workshop/argo-jenkins-exam', 
-                    url: 'https://github.com/tzachaker/devopshift-welcome.git'
+                script {
+                    // Make sure we're checking out the correct branch
+                    checkout scm
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    // Install dependencies (e.g., flake8, bandit)
+                    sh '''
+                        pip install --upgrade pip
+                        pip install flake8 bandit
+                    '''
+                }
             }
         }
 
         stage('Lint & Security Scan') {
             steps {
                 script {
-                    // התקנת חבילות לינטינג וסקירת אבטחה
-                    sh 'pip install flake8 bandit'
-                    
-                    // בדיקה אם ההתקנה הצליחה
-                    sh 'pip show flake8'
-                    sh 'pip show bandit'
-                    
-                    // הרצת בדיקות לינטינג
-                    sh 'flake8 . || exit 1'
-                    
-                    // הרצת סקירת אבטחה
-                    sh 'bandit -r . || exit 1'
+                    // Run linting and security scan
+                    sh '''
+                        flake8 .
+                        bandit -r .
+                    '''
                 }
             }
         }
-        
-        stage('Install Dependencies') {
-            steps {
-                sh 'pip install -r requirements.txt'
-            }
-        }
-        
+
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME/"
-                sh "docker tag $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$REPO_NAME:latest"
-            }
-        }
-        
-        stage('Run Tests in Container') {
-            steps {
-                sh "docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest tests/"
-            }
-        }
-        
-        stage('Integration Test with Docker Compose') {
-            steps {
-                dir('docker') {
-                    sh 'docker-compose up -d'
-                    sleep time: 10, unit: 'SECONDS'  // זמן להעלאת המכולות
-                    sh 'curl -f http://localhost:5002 || exit 1'  # Adjust for backend if needed
-                    sh 'docker-compose down'
+                script {
+                    // Build Docker image
+                    sh '''
+                        docker build -t my-image .
+                    '''
                 }
             }
         }
-        
+
+        stage('Run Tests in Container') {
+            steps {
+                script {
+                    // Run tests inside the container
+                    sh '''
+                        docker run --rm my-image pytest
+                    '''
+                }
+            }
+        }
+
+        stage('Integration Test with Docker Compose') {
+            steps {
+                script {
+                    // Use Docker Compose for integration testing
+                    sh '''
+                        docker-compose -f docker-compose.yml up --build
+                    '''
+                }
+            }
+        }
+
         stage('Push to Docker Hub') {
             steps {
-                sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
-                sh "docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG"
-                sh "docker push $DOCKER_REGISTRY/$REPO_NAME:latest"
+                script {
+                    // Push Docker image to Docker Hub
+                    sh '''
+                        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+                        docker push my-image
+                    '''
+                }
             }
         }
 
         stage('Cleanup') {
             steps {
-                sh 'docker system prune -af'
+                script {
+                    // Clean up any resources or containers
+                    sh '''
+                        docker system prune -f
+                    '''
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
