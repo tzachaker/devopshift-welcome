@@ -58,42 +58,46 @@ pipeline {
             }
         }
 
-        // stage('Build Docker Image') {
-        //     steps {
-        //         script {
-        //             sh "docker build -t $DOCKER_REGISTRY/fe:$IMAGE_TAG -f $DOCKERFILE_PATH/Dockerfile ."
-        //             sh "docker tag $DOCKER_REGISTRY/fe:$IMAGE_TAG $DOCKER_REGISTRY/fe:latest"
-        //         }
-        //     }
-        // }
+        stage('Build Docker Image') {
+            // steps {
+            //     script {
+            //         sh "docker build -t $DOCKER_REGISTRY/fe:$IMAGE_TAG -f $DOCKERFILE_PATH/Dockerfile ."
+            //         sh "docker tag $DOCKER_REGISTRY/fe:$IMAGE_TAG $DOCKER_REGISTRY/fe:latest"
+            //     }
+            // }
+            echo ""
+        }
 
-        // stage('Run Tests in Container') {
-        //     steps {
-        //         script {
-        //             sh "docker run --rm $DOCKER_REGISTRY/fe:$IMAGE_TAG pytest tests/"
-        //         }
-        //     }
-        // }
+        stage('Run Tests in Container') {
+            // steps {
+            //     script {
+            //         sh "docker run --rm $DOCKER_REGISTRY/fe:$IMAGE_TAG pytest tests/"
+            //     }
+            // }
+            echo ""
+        }
 
-        // stage('Integration Test with Docker Compose') {
-        //     steps {
-        //         script {
-        //             sh 'docker-compose -f $DOCKERFILE_PATH/docker-compose.yml up -d'
-        //             sleep time: 10, unit: 'SECONDS'
-        //             sh 'curl -f http://localhost:5002 || exit 1'
-        //             sh 'docker-compose down'
-        //         }
-        //     }
-        // }
+        stage('Integration Test with Docker Compose') {
+            // steps {
+            //     script {
+            //         sh 'docker-compose -f $DOCKERFILE_PATH/docker-compose.yml up -d'
+            //         sleep time: 10, unit: 'SECONDS'
+            //         sh 'curl -f http://localhost:5002 || exit 1'
+            //         sh 'docker-compose down'
+            //     }
+            // }
+            echo ""
+        }
 
-        // stage('Push to Docker Hub') {
-        //     steps {
-        //         script {
-        //             sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
-        //             sh "docker push $DOCKER_REGISTRY/fe:$IMAGE_TAG"
-        //             sh "docker push $DOCKER_REGISTRY/fe:latest"
-        //         }
-        //     }
-        // }
+        stage('Push to Docker Hub') {
+            // steps {
+            //     script {
+            //         sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
+            //         sh "docker push $DOCKER_REGISTRY/fe:$IMAGE_TAG"
+            //         sh "docker push $DOCKER_REGISTRY/fe:latest"
+            //     }
+            // }
+            echo ""
+        }
     }
 }
