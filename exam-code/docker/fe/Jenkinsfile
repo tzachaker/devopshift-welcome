@@ -1,128 +1,128 @@
-pipeline {
-    agent any
+// pipeline {
+//     agent any
     
-    environment {
-        DOCKERHUB_CREDENTIALS = credentials('exam')
-        DOCKER_REGISTRY = 'tzachaker'
-        REPO_NAME = 'be'  
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-    }
+//     environment {
+//         DOCKERHUB_CREDENTIALS = credentials('exam')
+//         DOCKER_REGISTRY = 'tzachaker'
+//         REPO_NAME = 'be'  
+//         IMAGE_TAG = "${env.BUILD_NUMBER}"
+//     }
     
-    stages {
-        stage('Clone Repository') {
-            steps {
-                git branch: 'workshop/argo-jenkins-exam', 
-                    url: 'https://github.com/tzachaker/devopshift-welcome.git'
-            }
-        }
+//     stages {
+//         stage('Clone Repository') {
+//             steps {
+//                 git branch: 'workshop/argo-jenkins-exam', 
+//                     url: 'https://github.com/tzachaker/devopshift-welcome.git'
+//             }
+//         }
         
-        stage('Lint & Security Scan') {
-            steps {
-                script {
-                    try {
-                        // התקנת כלים עבור Linting ו- Security Scan
-                        sh 'pip install flake8 bandit autopep8 black'
+//         stage('Lint & Security Scan') {
+//             steps {
+//                 script {
+//                     try {
+//                         // התקנת כלים עבור Linting ו- Security Scan
+//                         sh 'pip install flake8 bandit autopep8 black'
                         
-                        // הרצת linting עם flake8
-                        sh 'flake8 .'
+//                         // הרצת linting עם flake8
+//                         sh 'flake8 .'
                         
-                        // הרצת סריקת אבטחה עם bandit
-                        sh 'bandit -r .'
+//                         // הרצת סריקת אבטחה עם bandit
+//                         sh 'bandit -r .'
                         
-                        // תיקון אוטומטי של בעיות סגנון עם autopep8
-                        sh 'autopep8 --in-place --recursive .'
+//                         // תיקון אוטומטי של בעיות סגנון עם autopep8
+//                         sh 'autopep8 --in-place --recursive .'
                         
-                        // תיקון סגנון עם black
-                        sh 'black .'
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
-                }
-            }
-        }
+//                         // תיקון סגנון עם black
+//                         sh 'black .'
+//                     } catch (Exception e) {
+//                         currentBuild.result = 'FAILURE'
+//                         throw e
+//                     }
+//                 }
+//             }
+//         }
         
-        stage('Install Dependencies') {
-            steps {
-                script {
-                    try {
-                        sh 'pip install -r requirements.txt'
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
-                }
-            }
-        }
+//         stage('Install Dependencies') {
+//             steps {
+//                 script {
+//                     try {
+//                         sh 'pip install -r requirements.txt'
+//                     } catch (Exception e) {
+//                         currentBuild.result = 'FAILURE'
+//                         throw e
+//                     }
+//                 }
+//             }
+//         }
         
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    try {
-                        sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME"
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
-                }
-            }
-        }
+//         stage('Build Docker Image') {
+//             steps {
+//                 script {
+//                     try {
+//                         sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME"
+//                     } catch (Exception e) {
+//                         currentBuild.result = 'FAILURE'
+//                         throw e
+//                     }
+//                 }
+//             }
+//         }
         
-        stage('Run Tests in Container') {
-            steps {
-                script {
-                    try {
-                        // הרצת בדיקות בתוך container
-                        sh "docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest"
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
-                }
-            }
-        }
+//         stage('Run Tests in Container') {
+//             steps {
+//                 script {
+//                     try {
+//                         // הרצת בדיקות בתוך container
+//                         sh "docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest"
+//                     } catch (Exception e) {
+//                         currentBuild.result = 'FAILURE'
+//                         throw e
+//                     }
+//                 }
+//             }
+//         }
         
-        stage('Integration Test with Docker Compose') {
-            steps {
-                script {
-                    try {
-                        // הרצת אינטגרציה באמצעות Docker Compose
-                        sh "docker-compose -f docker/$REPO_NAME/docker-compose.yml up --build"
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
-                }
-            }
-        }
+//         stage('Integration Test with Docker Compose') {
+//             steps {
+//                 script {
+//                     try {
+//                         // הרצת אינטגרציה באמצעות Docker Compose
+//                         sh "docker-compose -f docker/$REPO_NAME/docker-compose.yml up --build"
+//                     } catch (Exception e) {
+//                         currentBuild.result = 'FAILURE'
+//                         throw e
+//                     }
+//                 }
+//             }
+//         }
         
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    try {
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                            sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
-                            sh "docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG"
-                        }
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
-                }
-            }
-        }
+//         stage('Push to Docker Hub') {
+//             steps {
+//                 script {
+//                     try {
+//                         withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+//                             sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+//                             sh "docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG"
+//                         }
+//                     } catch (Exception e) {
+//                         currentBuild.result = 'FAILURE'
+//                         throw e
+//                     }
+//                 }
+//             }
+//         }
         
-        stage('Cleanup') {
-            steps {
-                script {
-                    try {
-                        sh "docker system prune -f"
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
-                }
-            }
-        }
-    }
-}
+//         stage('Cleanup') {
+//             steps {
+//                 script {
+//                     try {
+//                         sh "docker system prune -f"
+//                     } catch (Exception e) {
+//                         currentBuild.result = 'FAILURE'
+//                         throw e
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
