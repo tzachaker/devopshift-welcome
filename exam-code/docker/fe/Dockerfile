@@ -2,8 +2,9 @@
 FROM python:3.12-slim
 
 WORKDIR /app
+COPY ./exam-code/docker/fe/requirements.txt /app/requirements.txt
 
-COPY requirements.txt requirements.txt
+# COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./src .
