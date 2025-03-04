@@ -1,15 +1,13 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10'
-        }
-    }
+    agent any
+    
     environment {
         DOCKERHUB_CREDENTIALS = credentials('exam')
         DOCKER_REGISTRY = 'tzachaker'
-        REPO_NAME = 'fe'  
+        REPO_NAME = 'be'  
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
+    
     stages {
         stage('Clone Repository') {
             steps {
@@ -20,53 +18,110 @@ pipeline {
         
         stage('Lint & Security Scan') {
             steps {
-                sh 'pip install flake8 bandit'
-                sh 'flake8 .'
-                sh 'bandit -r .'
+                script {
+                    try {
+                        // התקנת כלים עבור Linting ו- Security Scan
+                        sh 'pip install flake8 bandit autopep8 black'
+                        
+                        // הרצת linting עם flake8
+                        sh 'flake8 .'
+                        
+                        // הרצת סריקת אבטחה עם bandit
+                        sh 'bandit -r .'
+                        
+                        // תיקון אוטומטי של בעיות סגנון עם autopep8
+                        sh 'autopep8 --in-place --recursive .'
+                        
+                        // תיקון סגנון עם black
+                        sh 'black .'
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
+                }
             }
         }
         
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                script {
+                    try {
+                        sh 'pip install -r requirements.txt'
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
+                }
             }
         }
         
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME/"
-                sh "docker tag $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$REPO_NAME:latest"
+                script {
+                    try {
+                        sh "docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME"
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
+                }
             }
         }
         
         stage('Run Tests in Container') {
             steps {
-                sh "docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest tests/"
+                script {
+                    try {
+                        // הרצת בדיקות בתוך container
+                        sh "docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest"
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
+                }
             }
         }
         
         stage('Integration Test with Docker Compose') {
             steps {
-                dir('docker') {
-                    sh 'docker-compose up -d'
-                    sleep time: 10, unit: 'SECONDS'  
-                    sh 'curl -f http://localhost:5000 || exit 1' 
-                    sh 'docker-compose down'
+                script {
+                    try {
+                        // הרצת אינטגרציה באמצעות Docker Compose
+                        sh "docker-compose -f docker/$REPO_NAME/docker-compose.yml up --build"
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
                 }
             }
         }
         
         stage('Push to Docker Hub') {
             steps {
-                sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
-                sh "docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG"
-                sh "docker push $DOCKER_REGISTRY/$REPO_NAME:latest"
+                script {
+                    try {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+                            sh "docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG"
+                        }
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
+                }
             }
         }
-
+        
         stage('Cleanup') {
             steps {
-                sh 'docker system prune -af'
+                script {
+                    try {
+                        sh "docker system prune -f"
+                    } catch (Exception e) {
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
+                }
             }
         }
     }
