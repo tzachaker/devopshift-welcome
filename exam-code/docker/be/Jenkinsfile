@@ -13,7 +13,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 script {
-                    git branch: 'workshop/argo-jenkins-exam', url: 'https://github.com/amit142/devopshift-welcome.git'
+                    git branch: 'workshop/argo-jenkins-exam', url: 'https://github.com/tzachaker/devopshift-welcome.git'
                 }
             }
         }
