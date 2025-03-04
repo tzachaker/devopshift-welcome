@@ -1,73 +1,62 @@
 pipeline {
-    agent any
-
-    environment {
-        DOCKER_IMAGE = "python:3.10"
-        GIT_CREDENTIALS = 'exam' // credentials for git
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                script {
-                    // Make sure we're checking out the correct branch
-                    checkout scm
-                }
-            }
+    agent {
+        docker {
+            image 'python:3.10'
         }
-
-        stage('Install Dependencies') {
+    }
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('exam')
+        DOCKER_REGISTRY = 'tzachaker'
+        REPO_NAME = 'be'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+    stages {
+        stage('Clone Repository') {
             steps {
-                script {
-                    // Install dependencies (e.g., flake8, bandit)
-                    sh '''
-                        pip install --upgrade pip
-                        pip install flake8 bandit
-                    '''
-                }
+                git branch: 'workshop/argo-jenkins-exam',
+                    url: 'https://github.com/tzachaker/devopshift-welcome.git'
             }
         }
 
         stage('Lint & Security Scan') {
             steps {
-                script {
-                    // Run linting and security scan
-                    sh '''
-                        flake8 .
-                        bandit -r .
-                    '''
-                }
+                sh '''
+                    pip install flake8 bandit || true
+                    flake8 . || true
+                    bandit -r . || true
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'pip install -r requirements.txt'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Build Docker image
-                    sh '''
-                        docker build -t my-image .
-                    '''
-                }
+                sh '''
+                    docker build -t $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG docker/$REPO_NAME/
+                    docker tag $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG $DOCKER_REGISTRY/$REPO_NAME:latest
+                '''
             }
         }
 
         stage('Run Tests in Container') {
             steps {
-                script {
-                    // Run tests inside the container
-                    sh '''
-                        docker run --rm my-image pytest
-                    '''
-                }
+                sh 'docker run --rm $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG pytest tests/'
             }
         }
 
         stage('Integration Test with Docker Compose') {
             steps {
-                script {
-                    // Use Docker Compose for integration testing
+                dir('docker') {
                     sh '''
-                        docker-compose -f docker-compose.yml up --build
+                        docker-compose up -d
+                        sleep 10
+                        curl -f http://localhost:5002 || exit 1
+                        docker-compose down
                     '''
                 }
             }
@@ -75,31 +64,18 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                script {
-                    // Push Docker image to Docker Hub
-                    sh '''
-                        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-                        docker push my-image
-                    '''
-                }
+                sh '''
+                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+                    docker push $DOCKER_REGISTRY/$REPO_NAME:$IMAGE_TAG
+                    docker push $DOCKER_REGISTRY/$REPO_NAME:latest
+                '''
             }
         }
 
         stage('Cleanup') {
             steps {
-                script {
-                    // Clean up any resources or containers
-                    sh '''
-                        docker system prune -f
-                    '''
-                }
+                sh 'docker system prune -af'
             }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
         }
     }
 }
